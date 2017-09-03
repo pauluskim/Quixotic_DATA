@@ -27,7 +27,7 @@ except:
     from .ImageUtils import getImageSize
 
 from requests_toolbelt import MultipartEncoder
-from moviepy.editor import VideoFileClip
+#from moviepy.editor import VideoFileClip
 
 class InstagramAPI:
     API_URL = 'https://i.instagram.com/api/v1/'
@@ -543,7 +543,7 @@ class InstagramAPI:
         }
         if maxid:
             query_string['max_id'] = maxid
-        if system.version_info.major == 3:
+        if sys.version_info.major == 3:
             url += urllib.parse.urlencode(query_string)
         else:
             url += urllib.urlencode(query_string)
