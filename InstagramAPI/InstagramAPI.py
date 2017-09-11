@@ -15,6 +15,7 @@ import sys
 from datetime import datetime
 import calendar
 import os
+import pdb
 
 #The urllib library was split into other modules from Python 2 to Python 3
 if sys.version_info.major == 3:
@@ -66,12 +67,13 @@ class InstagramAPI:
         self.password = password
         self.uuid = self.generateUUID(True)
 
-    def login(self, force = False):
+    def login(self, force = False, dynamic_header = False):
         if (not self.isLoggedIn or force):
-            self.s = requests.Session()
+            if not dynamic_header: self.s = requests.Session()
             # if you need proxy make something like this:
-            # self.s.proxies = {"https" : "http://proxyip:proxyport"}
-            if (self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True)):
+            #req_proxy = RequestProxy()
+            #self.s.proxies = {"http" : "http://"+req_proxy.proxy_list[0].get_address()}
+            if (self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True, dynamic_header=dynamic_header)):
 
                 data = {'phone_id'   : self.generateUUID(True),
                         '_csrftoken' : self.LastResponse.cookies['csrftoken'],
@@ -81,7 +83,7 @@ class InstagramAPI:
                         'password'   : self.password,
                         'login_attempt_count' : '0'}
 
-                if (self.SendRequest('accounts/login/', self.generateSignature(json.dumps(data)), True)):
+                if (self.SendRequest('accounts/login/', self.generateSignature(json.dumps(data)), True, dynamic_header=dynamic_header)):
                     self.isLoggedIn = True
                     self.username_id = self.LastJson["logged_in_user"]["pk"]
                     self.rank_token = "%s_%s" % (self.username_id, self.uuid)
@@ -553,11 +555,11 @@ class InstagramAPI:
     def getSelfUsersFollowing(self):
         return self.getUserFollowings(self.username_id)
 
-    def getUserFollowers(self, usernameId, maxid = ''):
+    def getUserFollowers(self, usernameId, maxid = '', dynamic_header=False):
         if maxid == '':
-            return self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token)
+            return self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token, dynamic_header=dynamic_header)
         else:
-            return self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token + '&max_id='+ str(maxid))
+            return self.SendRequest('friendships/'+ str(usernameId) +'/followers/?rank_token='+ self.rank_token + '&max_id='+ str(maxid), dynamic_header=dynamic_header)
 
     def getSelfUserFollowers(self):
         return self.getUserFollowers(self.username_id)
@@ -676,6 +678,7 @@ class InstagramAPI:
         else:
             return generated_uuid.replace('-', '')
     
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     def generateUploadId():
         return str(calendar.timegm(datetime.utcnow().utctimetuple()))
     
@@ -696,16 +699,17 @@ class InstagramAPI:
         body += u'--{boundary}--'.format(boundary = boundary)
         return body;
     
-    def SendRequest(self, endpoint, post = None, login = False):
+    def SendRequest(self, endpoint, post = None, login = False, dynamic_header = False):
         if (not self.isLoggedIn and not login):
             raise Exception("Not logged in!\n")
             return;
-        self.s.headers.update ({'Connection' : 'close',
-                                'Accept' : '*/*',
-                                'Content-type' : 'application/x-www-form-urlencoded; charset=UTF-8',
-                                'Cookie2' : '$Version=1',
-                                'Accept-Language' : 'en-US',
-                                'User-Agent' : self.USER_AGENT})
+        if not dynamic_header:
+            self.s.headers.update ({'Connection' : 'close',
+                                    'Accept' : '*/*',
+                                    'Content-type' : 'application/x-www-form-urlencoded; charset=UTF-8',
+                                    'Cookie2' : '$Version=1',
+                                    'Accept-Language' : 'en-US',
+                                    'User-Agent' : self.USER_AGENT})
         if (post != None): # POST
             response = self.s.post(self.API_URL + endpoint, data=post) # , verify=False
         else: # GET
@@ -716,6 +720,7 @@ class InstagramAPI:
             self.LastJson = json.loads(response.text)
             return True
         else:
+            pdb.set_trace()
             print ("Request return " + str(response.status_code) + " error!")
             # for debugging
             try:
