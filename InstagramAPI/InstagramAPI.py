@@ -273,6 +273,7 @@ class InstagramAPI:
             try:
                 self.LastResponse = response
                 self.LastJson = json.loads(response.text)
+                print(self.LastJson)
             except:
                 pass
             return False
@@ -720,7 +721,7 @@ class InstagramAPI:
             self.LastJson = json.loads(response.text)
             return True
         else:
-            pdb.set_trace()
+            #pdb.set_trace()
             print ("Request return " + str(response.status_code) + " error!")
             # for debugging
             try:
